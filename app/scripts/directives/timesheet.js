@@ -142,6 +142,7 @@
    * Parse data string
    */
   Timesheet.prototype.parseDate = function(date) {
+    console.log(date);
     if (date.indexOf('/') === -1) {
       date = new Date(parseInt(date, 10), 0, 1);
       date.hasMonth = false;
@@ -184,6 +185,42 @@
 
 'use strict';
 
+var TimesheetAngular = function(container, min, max, data) {
+    this.data = [];
+    this.year = {
+      min: min,
+      max: max
+    };
+
+    if (typeof document !== 'undefined') {
+      this.container = (typeof container === 'string') ? document.querySelector('#'+container) : container;
+    }
+}
+
+TimesheetAngular.prototype = Object.create(Timesheet.prototype);
+TimesheetAngular.prototype.constructor = TimesheetAngular;
+
+Timesheet.prototype.parse = function(data) {
+  for (var n = 0, m = data.length; n<m; n++) {
+    var beg = this.parseDate(data[n][0]);
+    var end = data[n].length === 4 ? this.parseDate(data[n][1]) : null;
+    var lbl = data[n].length === 4 ? data[n][2] : data[n][1];
+    var cat = data[n][3] || 'default';
+
+    if (beg.getFullYear() < this.year.min) {
+      this.year.min = beg.getFullYear();
+    }
+
+    if (end && end.getFullYear() > this.year.max) {
+      this.year.max = end.getFullYear();
+    } else if (beg.getFullYear() > this.year.max) {
+      this.year.max = beg.getFullYear();
+    }
+
+    return {start: beg, end: end, label: lbl, type: cat};
+  }
+};
+
 /**
  * @ngdoc directive
  * @name angularTimesheetApp.directive:timesheet
@@ -193,70 +230,92 @@
 angular.module('angularTimesheetApp')
   .directive('timesheet', function () {
     return {
-    	template: '<div ng-transclude=""></div>',
+    	template: '<div></div>',
     	transclude: true,
     	scope: {
     		mindate: '=',
     		maxdate: '='
     	},
       restrict: 'E',
-      controller: function($scope, $element) {
-      	// $scope.bubbleDatas = [];
-      	return {
-      		getElementWidth: function() {
-      			return $element.width();
-      		}
-      	}
-      },
       compile: function compile(tElement, tAttrs) {
       	return {
       		pre: function preLink(scope, element, attrs, ctrl, transcludeFn) {
-      			scope.timesheet = new Timesheet(element[0], scope.mindate, scope.maxdate, []);
-      			scope.timesheet.drawSections();
 
-      			transcludeFn(scope, function(cloned) {
-      				// console.log(cloned);
-      			});
       		},
-      		post: function postLink(scope, element) {
-		      	// var bubbles = element.find('timesheet-bubble');
+      		post: function postLink(scope, element, attrs, ctrl, transcludeFn) {
+            scope.timesheet = new TimesheetAngular(element[0], scope.mindate.toString(), scope.maxdate.toString(), []);
+            scope.timesheet.drawSections();
 
-		      	// angular.forEach(bubbles, function(bubble, i) {
-		      	// 	var bubble 			= angular.element(bubble);
-		      	// 	var startdate 	= bubble.attr('startdate');
-		      	// 	var enddate 		= bubble.attr('enddate');
-		      	// 	var content 		= bubble.text();
-		      	// 	var bubbleData 	= [startdate, enddate, content, ''];
+            element.css({display: 'block'});
 
-		      	// 	scope.bubbleDatas.push(bubbleData);
-		      	// });
-
-		      	// var timesheet = new Timesheet(element[0], scope.mindate, scope.maxdate, scope.bubbleDatas);
-		      	// element.css({display: 'block'});
+            transcludeFn(scope, function(cloned) {
+              element.append(cloned);
+            });
 		      }
       	}
-      }
+      },
+      controller: function($scope, $element) {
+        return {
+          getWidth: function() {
+            return $element[0].offsetWidth;
+          },
+          getTimesheet: function() {
+            return $scope.timesheet;
+          }
+        }
+      },
     };
   })
-  .directive('timesheetBubble', function () {
+  .directive('timesheetBubble', function ($timeout) {
     return {
     	scope: {
     		startdate: '=',
     		enddate: '='
     	},
     	require: '^timesheet',
-      template: '<div></div>',
-      restrict: 'E',
-      compile: function compile(tElement, tAttrs, transclude) {
-      	return {
-      		pre: function preLink(scope, element, attrs, ctrl) {
-      			var widthMonth = ctrl.getElementWidth();
-      			scope = new Bubble();
-      		},
-      		post: function postLink(scope, element) {
+      restrict: 'E',  
+      compile: function compile(tElement, tAttrs) {
+        return {
+          pre: function(scope, element, attrs, ctrl, transcludeFn) {
+            var widthMonth  = ctrl.getWidth();
+            var timesheet   = ctrl.getTimesheet();
+            var mindate = timesheet.year.min;
+            var cur = timesheet.parse([[scope.startdate.toString(), scope.enddate.toString(), element.text(), '']]);
 
-      		}
-      	}
+            var bubble = new TimesheetBubble(widthMonth, mindate, cur.start, cur.end);
+
+            console.log(element);
+
+            var line = [
+              '<span style="margin-left: ' + bubble.getStartOffset() + 'px; width: ' + bubble.getWidth() + 'px;" class="bubble bubble-' + (cur.type || 'default') + '" data-duration="' + (cur.end ? Math.round((cur.end-cur.start)/1000/60/60/24/39) : '') + '"></span>',
+              '<span class="date">' + bubble.getDateLabel() + '</span> ',
+              '<span class="label">' + cur.label + '</span>'
+            ].join('');
+
+            // console.log(line);
+
+            element.html(line);
+          },
+          post: function(scope, element, attrs, ctrl, transcludeFn) {
+
+          }
+        }
       }
     };
   });
+
+
+// var bubbles = element.find('timesheet-bubble');
+
+// angular.forEach(bubbles, function(bubble, i) {
+//  var bubble      = angular.element(bubble);
+//  var startdate   = bubble.attr('startdate');
+//  var enddate     = bubble.attr('enddate');
+//  var content     = bubble.text();
+//  var bubbleData  = [startdate, enddate, content, ''];
+
+//  scope.bubbleDatas.push(bubbleData);
+// });
+
+// var timesheet = new Timesheet(element[0], scope.mindate, scope.maxdate, scope.bubbleDatas);
+// element.css({display: 'block'});
