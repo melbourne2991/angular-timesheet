@@ -142,7 +142,6 @@
    * Parse data string
    */
   Timesheet.prototype.parseDate = function(date) {
-    console.log(date);
     if (date.indexOf('/') === -1) {
       date = new Date(parseInt(date, 10), 0, 1);
       date.hasMonth = false;
@@ -197,28 +196,27 @@ var TimesheetAngular = function(container, min, max, data) {
     }
 }
 
+// Angular Sub Class
 TimesheetAngular.prototype = Object.create(Timesheet.prototype);
 TimesheetAngular.prototype.constructor = TimesheetAngular;
 
 Timesheet.prototype.parse = function(data) {
-  for (var n = 0, m = data.length; n<m; n++) {
-    var beg = this.parseDate(data[n][0]);
-    var end = data[n].length === 4 ? this.parseDate(data[n][1]) : null;
-    var lbl = data[n].length === 4 ? data[n][2] : data[n][1];
-    var cat = data[n][3] || 'default';
+  var beg = this.parseDate(data[0]);
+  var end = data.length === 4 ? this.parseDate(data[1]) : null;
+  var lbl = data.length === 4 ? data[2] : data[1];
+  var cat = data[3] || 'default';
 
-    if (beg.getFullYear() < this.year.min) {
-      this.year.min = beg.getFullYear();
-    }
-
-    if (end && end.getFullYear() > this.year.max) {
-      this.year.max = end.getFullYear();
-    } else if (beg.getFullYear() > this.year.max) {
-      this.year.max = beg.getFullYear();
-    }
-
-    return {start: beg, end: end, label: lbl, type: cat};
+  if (beg.getFullYear() < this.year.min) {
+    this.year.min = beg.getFullYear();
   }
+
+  if (end && end.getFullYear() > this.year.max) {
+    this.year.max = end.getFullYear();
+  } else if (beg.getFullYear() > this.year.max) {
+    this.year.max = beg.getFullYear();
+  }
+
+  return {start: beg, end: end, label: lbl, type: cat};
 };
 
 /**
@@ -228,39 +226,38 @@ Timesheet.prototype.parse = function(data) {
  * # timesheet
  */
 angular.module('angularTimesheetApp')
-  .directive('timesheet', function () {
+  .directive('timesheet', function ($rootScope) {
     return {
     	template: '<div></div>',
+      replace: true,
     	transclude: true,
     	scope: {
-    		mindate: '=',
-    		maxdate: '='
+    		mindate: '@',
+    		maxdate: '@'
     	},
       restrict: 'E',
       compile: function compile(tElement, tAttrs) {
       	return {
-      		pre: function preLink(scope, element, attrs, ctrl, transcludeFn) {
-
-      		},
       		post: function postLink(scope, element, attrs, ctrl, transcludeFn) {
-            scope.timesheet = new TimesheetAngular(element[0], scope.mindate.toString(), scope.maxdate.toString(), []);
-            scope.timesheet.drawSections();
+            var timesheet = ctrl.getTimesheet();
+            timesheet.drawSections();
 
-            element.css({display: 'block'});
+            element.append('<ul class="data"></ul>');
 
-            transcludeFn(scope, function(cloned) {
-              element.append(cloned);
+            var ul = element.find('ul');
+
+            transcludeFn(scope.$parent, function(cloned) {
+              ul.append(cloned);
             });
 		      }
       	}
       },
       controller: function($scope, $element) {
+        var timesheet = new TimesheetAngular($element[0], $scope.mindate, $scope.maxdate, []);
+
         return {
-          getWidth: function() {
-            return $element[0].offsetWidth;
-          },
           getTimesheet: function() {
-            return $scope.timesheet;
+            return timesheet;
           }
         }
       },
@@ -274,30 +271,29 @@ angular.module('angularTimesheetApp')
     	},
     	require: '^timesheet',
       restrict: 'E',  
-      compile: function compile(tElement, tAttrs) {
+      replace: true,
+      transclude: true,
+      template: '<li></li>',
+      compile: function compile(tElement, tAttrs, transclude) {
         return {
-          pre: function(scope, element, attrs, ctrl, transcludeFn) {
-            var widthMonth  = ctrl.getWidth();
-            var timesheet   = ctrl.getTimesheet();
-            var mindate = timesheet.year.min;
-            var cur = timesheet.parse([[scope.startdate.toString(), scope.enddate.toString(), element.text(), '']]);
-
-            var bubble = new TimesheetBubble(widthMonth, mindate, cur.start, cur.end);
-
-            console.log(element);
-
-            var line = [
-              '<span style="margin-left: ' + bubble.getStartOffset() + 'px; width: ' + bubble.getWidth() + 'px;" class="bubble bubble-' + (cur.type || 'default') + '" data-duration="' + (cur.end ? Math.round((cur.end-cur.start)/1000/60/60/24/39) : '') + '"></span>',
-              '<span class="date">' + bubble.getDateLabel() + '</span> ',
-              '<span class="label">' + cur.label + '</span>'
-            ].join('');
-
-            // console.log(line);
-
-            element.html(line);
-          },
           post: function(scope, element, attrs, ctrl, transcludeFn) {
+            var timesheet   = ctrl.getTimesheet(),
+                widthMonth  = timesheet.container.querySelector('.scale section').offsetWidth,
+                mindate     = timesheet.year.min;
 
+            transcludeFn(scope, function(clone) {
+              var curargs = [scope.startdate, scope.enddate, angular.element(clone).text(), ''],
+                  cur     = timesheet.parse(curargs),
+                  bubble  = new TimesheetBubble(widthMonth, mindate, cur.start, cur.end);
+
+              var line = [
+                '<span style="margin-left: ' + bubble.getStartOffset() + 'px; width: ' + bubble.getWidth() + 'px;" class="bubble bubble-' + (cur.type || 'default') + '" data-duration="' + (cur.end ? Math.round((cur.end-cur.start)/1000/60/60/24/39) : '') + '"></span>',
+                '<span class="date">' + bubble.getDateLabel() + '</span> ',
+                '<span class="label">' + cur.label + '</span>'
+              ].join('');
+
+              element.html(line);
+            });
           }
         }
       }
@@ -319,3 +315,9 @@ angular.module('angularTimesheetApp')
 
 // var timesheet = new Timesheet(element[0], scope.mindate, scope.maxdate, scope.bubbleDatas);
 // element.css({display: 'block'});
+
+// <div style="font-size:16px
+//             "><span style="font-size:22px">Please note:</span>
+
+// Dongwha is a wholesale manufacturer only and does not deal directly with 
+//   the public or retail sector</div>

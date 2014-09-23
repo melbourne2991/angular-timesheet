@@ -1,5 +1,15 @@
-<timesheet mindate="2002" maxdate="2013">
-  <timesheet-bubble startdate="2002" enddate="09/2002">Yeah pretty cool</timesheet-bubble>
-  <timesheet-bubble startdate="2002" enddate="09/2002">Yeah pretty cool</timesheet-bubble>
-  <timesheet-bubble startdate="2005" enddate="09/2008">Yeah pretty cool</timesheet-bubble>
+<!-- <timesheet mindate="2002" maxdate="2013">
+  <timesheet-bubble startdate="06/2002" enddate="2004"></timesheet-bubble>
+  <timesheet-bubble startdate="06/2008" enddate="06/2011"></timesheet-bubble>
+  <timesheet-bubble startdate="06/2005" enddate="04/2007"></timesheet-bubble>
+  <timesheet-bubble startdate="06/2002" enddate="2004"></timesheet-bubble>
+  <timesheet-bubble startdate="2002" enddate="09/2002"></timesheet-bubble>
+  <timesheet-bubble startdate="2005" enddate="09/2008"></timesheet-bubble>
 </timesheet>
+ -->
+
+
+<timesheet mindate="2002" maxdate="2013">
+  <timesheet-bubble ng-repeat="data in timesheetData.datas" startdate="data.startdate" enddate="data.enddate">dfdf</timesheet-bubble>
+</timesheet>
+
