@@ -282,17 +282,86 @@ angular.module('angularTimesheetApp')
                 mindate     = timesheet.year.min;
 
             transcludeFn(scope, function(clone) {
-              var curargs = [scope.startdate, scope.enddate, angular.element(clone).text(), ''],
-                  cur     = timesheet.parse(curargs),
-                  bubble  = new TimesheetBubble(widthMonth, mindate, cur.start, cur.end);
+              var reEvaluate = function() {
+                var curargs = [scope.startdate, scope.enddate, angular.element(clone).text(), ''],
+                    cur     = timesheet.parse(curargs),
+                    bubble  = new TimesheetBubble(widthMonth, mindate, cur.start, cur.end);
+
+                var line = [
+                  '<span style="margin-left: ' + bubble.getStartOffset() + 'px; width: ' + bubble.getWidth() + 'px;" class="bubble bubble-' + (cur.type || 'default') + '" data-duration="' + (cur.end ? Math.round((cur.end-cur.start)/1000/60/60/24/39) : '') + '"></span>',
+                  '<span class="date">' + bubble.getDateLabel() + '</span> ',
+                  '<span class="label">' + cur.label + '</span>'
+                ].join('');
+
+                return {
+                  start_offset: bubble.getStartOffset(),
+                  width: bubble.getWidth(),
+                  date_label: bubble.getDateLabel(),
+                  label: cur.label,
+                  duration: (cur.end ? Math.round((cur.end-cur.start)/1000/60/60/24/39) : ''),
+                  type: (cur.type || 'default')
+                }      
+              };
+
+              var checkEval = function(draw_data) {
+                var bubbleEl = angular.element(timesheet.container.querySelector('.bubble'));
+
+
+
+                if(draw_data_current.start_offset !== draw_data.start_offset) {
+                  console.log('start_offset changed');
+                }
+
+                if(draw_data_current.width !== draw_data.width) {
+                  console.log('width changed');
+
+                  bubbleEl.css({
+                    width: draw_data.width + 'px'
+                  });
+                }
+
+                if(draw_data_current.date_label !== draw_data.date_label) {
+                  console.log('date_label changed');
+                }
+
+                if(draw_data_current.label !== draw_data.label) {
+                  console.log('label changed');
+                }
+
+                if(draw_data_current.duration !== draw_data.duration) {
+                  console.log('duration changed');
+
+                  bubbleEl.data('duration', draw_data.duration);
+                }
+
+                if(draw_data_current.type !== draw_data.type) {
+                  conosle.log('type changed');
+                }
+              };
+
+              var draw_data_current = reEvaluate();
 
               var line = [
-                '<span style="margin-left: ' + bubble.getStartOffset() + 'px; width: ' + bubble.getWidth() + 'px;" class="bubble bubble-' + (cur.type || 'default') + '" data-duration="' + (cur.end ? Math.round((cur.end-cur.start)/1000/60/60/24/39) : '') + '"></span>',
-                '<span class="date">' + bubble.getDateLabel() + '</span> ',
-                '<span class="label">' + cur.label + '</span>'
-              ].join('');
+                    '<span style="margin-left: ' + draw_data_current.start_offset + 'px; width: ' + draw_data_current.width + 'px;" class="bubble bubble-' + draw_data_current.type + '" data-duration="' + draw_data_current.duration + '"></span>',
+                    '<span class="date">' + draw_data_current.date_label + '</span> ',
+                    '<span class="label">' + draw_data_current.label + '</span>'
+                  ].join('');
 
-              element.html(line);
+              element.html(line);   
+
+              scope.$watch('startdate', function(n, o) {
+                if(n && n !== o) {
+                  var draw_data = reEvaluate();
+                  checkEval(draw_data);
+                }
+              });
+
+              scope.$watch('enddate', function(n, o) {
+                if(n && n !== o) {
+                  var draw_data = reEvaluate();
+                  checkEval(draw_data);
+                }
+              });
             });
           }
         }

@@ -15,7 +15,7 @@ angular.module('angularTimesheetApp')
   		datas: [
   			{ startdate: '06/2002' , enddate: '2008' },
   			{ startdate: '06/2008' , enddate: '2011' },
-  			{ startdate: '07/2008' , enddate: '2004' },
+  			{ startdate: '07/2002' , enddate: '2004' },
   			{ startdate: '06/2002' , enddate: '2004' }
   		]
   	}
