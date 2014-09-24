@@ -2,9 +2,6 @@
 
 angular.module('angularTimesheetApp')
   .factory('TimesheetBubble', function() {
-    /**
-     * Timesheet Bubble
-     */
     var Bubble = function(wMonth, min, start, end) {
       this.min = min;
       this.start = start;
@@ -12,32 +9,20 @@ angular.module('angularTimesheetApp')
       this.widthMonth = wMonth;
     };
 
-    /**
-     * Format month number
-     */
     Bubble.prototype.formatMonth = function(num) {
       num = parseInt(num, 10);
 
       return num >= 10 ? num : '0' + num;
     };
 
-    /**
-     * Calculate starting offset for bubble
-     */
     Bubble.prototype.getStartOffset = function() {
       return (this.widthMonth/12) * (12 * (this.start.getFullYear() - this.min) + this.start.getMonth());
     };
 
-    /**
-     * Get count of full years from start to end
-     */
     Bubble.prototype.getFullYears = function() {
       return ((this.end && this.end.getFullYear()) || this.start.getFullYear()) - this.start.getFullYear();
     };
 
-    /**
-     * Get count of all months in Timesheet Bubble
-     */
     Bubble.prototype.getMonths = function() {
       var fullYears = this.getFullYears();
       var months = 0;
@@ -58,16 +43,10 @@ angular.module('angularTimesheetApp')
       return months;
     };
 
-    /**
-     * Get bubble's width in pixel
-     */
     Bubble.prototype.getWidth = function() {
       return (this.widthMonth/12) * this.getMonths();
     };
 
-    /**
-     * Get the bubble's label
-     */
     Bubble.prototype.getDateLabel = function() {
       return [
         (this.start.hasMonth ? this.formatMonth(this.start.getMonth() + 1) + '/' : '' ) + this.start.getFullYear(),
@@ -78,83 +57,17 @@ angular.module('angularTimesheetApp')
     return Bubble;
   })
   .factory('Timesheet', function() {
-    /**
-     * Initialize a Timesheet
-     */
-    var Timesheet = function(container, min, max, data) {
-      this.data = [];
-      this.year = {
-        min: min,
-        max: max
-      };
-
-      this.parse(data || []);
-
-      if (typeof document !== 'undefined') {
-        this.container = (typeof container === 'string') ? document.querySelector('#'+container) : container;
-        this.drawSections();
-        this.insertData();
-      }
-    };
-
-    /**
-     * Draw section labels
-     */
-    Timesheet.prototype.drawSections = function() {
-      var html = [];
-
-      for (var c = this.year.min; c <= this.year.max; c++) {
-        html.push('<section>' + c + '</section>');
-      }
-
-      this.container.className = 'timesheet color-scheme-default';
-      this.container.innerHTML = '<div class="scale">' + html.join('') + '</div>';
-    };
-
-    /**
-     * Parse data string
-     */
-    Timesheet.prototype.parseDate = function(date) {
-      if (date.indexOf('/') === -1) {
-        date = new Date(parseInt(date, 10), 0, 1);
-        date.hasMonth = false;
-      } else {
-        date = date.split('/');
-        date = new Date(parseInt(date[1], 10), parseInt(date[0], 10)-1, 1);
-        date.hasMonth = true;
-      }
-
-      return date;
-    };
-
-    /**
-     * Parse passed data
-     */
-    Timesheet.prototype.parse = function(data) {
-      for (var n = 0, m = data.length; n<m; n++) {
-        var beg = this.parseDate(data[n][0]);
-        var end = data[n].length === 4 ? this.parseDate(data[n][1]) : null;
-        var lbl = data[n].length === 4 ? data[n][2] : data[n][1];
-        var cat = data[n][3] || 'default';
-
-        if (beg.getFullYear() < this.year.min) {
-          this.year.min = beg.getFullYear();
-        }
-
-        if (end && end.getFullYear() > this.year.max) {
-          this.year.max = end.getFullYear();
-        } else if (beg.getFullYear() > this.year.max) {
-          this.year.max = beg.getFullYear();
-        }
-
-        this.data.push({start: beg, end: end, label: lbl, type: cat});
-      }
-    };
-
-    var TimesheetAngular = function(container, min, max) {
-        this.year = {
+    var Timesheet = function(container, min, max, incrementType, incrementSize, incrementTotal, incrementsInView) {
+        this.range = {
           min: min,
-          max: max
+          max: max,
+        };
+
+        this.increment = {
+          type: incrementType,
+          size: incrementSize,
+          total: incrementTotal,
+          inView: incrementsInView
         };
 
         if (typeof document !== 'undefined') {
@@ -162,29 +75,43 @@ angular.module('angularTimesheetApp')
         }
     };
 
-    // Angular Specific Sub Class
-    TimesheetAngular.prototype = Object.create(Timesheet.prototype);
-    TimesheetAngular.prototype.constructor = TimesheetAngular;
-    TimesheetAngular.prototype.parse = function(data) {
-      var beg = this.parseDate(data[0]);
-      var end = data.length === 4 ? this.parseDate(data[1]) : null;
-      var lbl = data.length === 4 ? data[2] : data[1];
-      var cat = data[3] || 'default';
+    Timesheet.prototype.parseDate = function(date) {
+      // if (date.indexOf('/') === -1) {
+      //   date = new Date(parseInt(date, 10), 0, 1);
+      //   date.hasMonth = false;
+      // } else {
+      //   date = date.split('/');
+      //   date = new Date(parseInt(date[1], 10), parseInt(date[0], 10)-1, 1);
+      //   date.hasMonth = true;
+      // }
 
-      if (beg.getFullYear() < this.year.min) {
-        this.year.min = beg.getFullYear();
-      }
-
-      if (end && end.getFullYear() > this.year.max) {
-        this.year.max = end.getFullYear();
-      } else if (beg.getFullYear() > this.year.max) {
-        this.year.max = beg.getFullYear();
-      }
-
-      return {start: beg, end: end, label: lbl, type: cat};
+      // return date;
     };
 
-    return TimesheetAngular;
+    Timesheet.prototype.parse = function(startdate, enddate, label, type) {
+      var dateRange = enddate - startdate;
+
+      // date range/total range
+
+      // var beg = this.parseDate(data[0]);
+      // var end = data.length === 4 ? this.parseDate(data[1]) : null;
+      // var lbl = data.length === 4 ? data[2] : data[1];
+      // var cat = data[3] || 'default';
+
+      // if (beg.getFullYear() < this.year.min) {
+      //   this.year.min = beg.getFullYear();
+      // }
+
+      // if (end && end.getFullYear() > this.year.max) {
+      //   this.year.max = end.getFullYear();
+      // } else if (beg.getFullYear() > this.year.max) {
+      //   this.year.max = beg.getFullYear();
+      // }
+
+      // return {start: beg, end: end, label: lbl, type: cat};
+    };
+
+    return Timesheet;
   })
   .directive('timesheet', function (Timesheet) {
     return {
@@ -192,29 +119,50 @@ angular.module('angularTimesheetApp')
       replace: true,
     	transclude: true,
     	scope: {
-    		mindate: '@',
-    		maxdate: '@'
+    		mindate: '=',
+    		maxdate: '=',
+        incrementType: '=',
+        incrementSize: '=',
+        incrementTotal: '=',
+        incrementInView: '='
     	},
       restrict: 'E',
       compile: function compile(tElement, tAttrs) {
       	return {
       		post: function postLink(scope, element, attrs, ctrl, transcludeFn) {
             var timesheet = ctrl.getTimesheet();
-            timesheet.drawSections();
+            var html = [];
 
+            var sectionWidth = element[0].offsetWidth / scope.incrementTotal;
+
+            console.log(sectionWidth);
+
+            for (var c = 0; c < scope.incrementTotal; c++) {
+              html.push('<section style="width:' + sectionWidth + 'px">' + c + '</section>');
+            }
+
+            console.log(scope);
+
+            element.addClass('timesheet color-scheme-default');
+            element.html('<div class="scale">' + html.join('') + '</div>');
             element.append('<ul class="data"></ul>');
-
-            var ul = angular.element(element[0].querySelector('ul.data'));
 
             // Pass parent scope in so ng-repeat and others will work as expected.
             transcludeFn(scope.$parent, function(cloned) {
-              ul.append(cloned);
+              angular.element(element[0].querySelector('ul.data')).append(cloned);
             });
 		      }
       	};
       },
       controller: function($scope, $element) {
-        var timesheet = new Timesheet($element[0], $scope.mindate, $scope.maxdate);
+        var timesheet = new Timesheet(
+              $element[0], 
+              $scope.mindate, 
+              $scope.maxdate, 
+              $scope.incrementType,
+              $scope.incrementSize,
+              $scope.incrementsInView 
+            );
 
         return {
           getTimesheet: function() {
@@ -244,8 +192,7 @@ angular.module('angularTimesheetApp')
 
             transcludeFn(scope, function(clone) {
               var reEvaluate = function() {
-                var curargs = [scope.startdate, scope.enddate, angular.element(clone).text(), ''],
-                    cur     = timesheet.parse(curargs),
+                var cur     = timesheet.parse(scope.startdate, scope.enddate, angular.element(clone).text(), ''),
                     bubble  = new TimesheetBubble(widthMonth, mindate, cur.start, cur.end);
 
                 return {
