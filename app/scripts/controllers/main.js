@@ -20,5 +20,9 @@ angular.module('angularTimesheetApp')
   		]
   	}
 
+  	$scope.addNew = function() {
+  		$scope.timesheetData.datas.push({ startdate: '07/2002' , enddate: '2004' });
+  	}
+
 
   });

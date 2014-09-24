@@ -13,5 +13,7 @@
   <timesheet-bubble ng-repeat="data in timesheetData.datas" startdate="data.startdate" enddate="data.enddate">dfdf</timesheet-bubble>
 </timesheet>
 
-<button ng-click="timesheetData.datas[2].enddate = '2006'">Change</button>
-<button ng-click="timesheetData.datas[2].startdate = '2003'">Change</button>
+<button ng-click="timesheetData.datas[2].enddate = (timesheetData.datas[2].enddate === '2006' ? '2009': '2006')">Change</button>
+<button ng-click="timesheetData.datas[2].startdate = (timesheetData.datas[2].startdate === '2002' ? '2004' : '2002')">Change</button>
+
+<button ng-click="addNew()">Add new</button>

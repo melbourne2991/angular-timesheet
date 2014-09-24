@@ -1,0 +1,3 @@
+.timesheet .bubble {
+	transition: width .2s, margin .2s;
+}
