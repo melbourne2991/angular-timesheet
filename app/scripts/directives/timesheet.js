@@ -112,7 +112,6 @@ angular.module('angularTimesheetApp')
             var html = [];
 
             for(var i = 0; i < incrementTotal; i++) {
-              console.log('in');
               html.push('<section style="width:' + sectionWidth + 'px; box-sizing: border-box"></section>');
             }
 
@@ -211,15 +210,15 @@ angular.module('angularTimesheetApp')
               scope.$watch('startdate', function(n, o) {
                 if(n && n !== o) {
                   var reVal = reEvaluate();
-                  console.log(reVal);
                   checkEval(reVal);
                 }
               });
 
               scope.$watch('enddate', function(n, o) {
+                  console.log('end date changed');
+
                 if(n && n !== o) {
                   var reVal = reEvaluate();
-                  console.log(reVal);
                   checkEval(reVal);
                 }
               });
