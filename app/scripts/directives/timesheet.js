@@ -2,113 +2,100 @@
 
 angular.module('angularTimesheetApp')
   .factory('TimesheetBubble', function() {
-    var Bubble = function(wMonth, min, start, end) {
-      this.min = min;
-      this.start = start;
-      this.end = end;
-      this.widthMonth = wMonth;
+    var Bubble = function(timesheet, startDate, endDate, label) {
+      this.timesheet  = timesheet || '';
+      this.startDate  = startDate || '';
+      this.endDate    = endDate   || '';
+      this.label      = label     || ''; 
     };
 
-    Bubble.prototype.formatMonth = function(num) {
-      num = parseInt(num, 10);
+    Bubble.prototype.init = function(startDate, endDate, label) {
+      if(startDate  !== this.startDate)  this.startDate  = startDate;
+      if(endDate    !== this.endDate)    this.endDate    = endDate;
+      if(label      !== this.label)      this.label      = label;
 
-      return num >= 10 ? num : '0' + num;
+      return {
+        width: this.getWidth(),
+        startOffset: this.getOffset(),
+        label: this.label,
+        dateLabel: '',
+        type: 'default'
+      };
     };
 
-    Bubble.prototype.getStartOffset = function() {
-      return (this.widthMonth/12) * (12 * (this.start.getFullYear() - this.min) + this.start.getMonth());
-    };
-
-    Bubble.prototype.getFullYears = function() {
-      return ((this.end && this.end.getFullYear()) || this.start.getFullYear()) - this.start.getFullYear();
-    };
-
-    Bubble.prototype.getMonths = function() {
-      var fullYears = this.getFullYears();
-      var months = 0;
-
-      if (!this.end) {
-        months += !this.start.hasMonth ? 12 : 1;
-      } else {
-        if (!this.end.hasMonth) {
-          months += 12 - (this.start.hasMonth ? this.start.getMonth() : 0);
-          months += 12 * (fullYears-1 > 0 ? fullYears-1 : 0);
-        } else {
-          months += this.end.getMonth() + 1;
-          months += 12 - (this.start.hasMonth ? this.start.getMonth() : 0);
-          months += 12 * (fullYears-1);
-        }
-      }
-
-      return months;
+    Bubble.prototype.getDiff = function() {
+      return this.endDate - this.startDate;
     };
 
     Bubble.prototype.getWidth = function() {
-      return (this.widthMonth/12) * this.getMonths();
+      return this.timesheet.container.offsetWidth*(this.getDiff() / this.timesheet.getDiff());
     };
 
-    Bubble.prototype.getDateLabel = function() {
-      return [
-        (this.start.hasMonth ? this.formatMonth(this.start.getMonth() + 1) + '/' : '' ) + this.start.getFullYear(),
-        (this.end ? '-' + ((this.end.hasMonth ? this.formatMonth(this.end.getMonth() + 1) + '/' : '' ) + this.end.getFullYear()) : '')
-      ].join('');
+    Bubble.prototype.getOffset = function() {
+      return this.timesheet.container.offsetWidth*((this.startDate - this.timesheet.min) / this.timesheet.getDiff());
     };
 
     return Bubble;
   })
   .factory('Timesheet', function() {
-    var Timesheet = function(container, min, max, incrementType, incrementSize, incrementTotal, incrementsInView) {
-        this.range = {
-          min: min,
-          max: max,
-        };
-
-        this.increment = {
-          type: incrementType,
-          size: incrementSize,
-          total: incrementTotal,
-          inView: incrementsInView
-        };
+    var Timesheet = function(container, min, max) {
+        this.min = min;
+        this.max = max
 
         if (typeof document !== 'undefined') {
-          this.container = (typeof container === 'string') ? document.querySelector('#'+container) : container;
+          this.container = container;
         }
     };
 
-    Timesheet.prototype.parseDate = function(date) {
-      // if (date.indexOf('/') === -1) {
-      //   date = new Date(parseInt(date, 10), 0, 1);
-      //   date.hasMonth = false;
-      // } else {
-      //   date = date.split('/');
-      //   date = new Date(parseInt(date[1], 10), parseInt(date[0], 10)-1, 1);
-      //   date.hasMonth = true;
-      // }
-
-      // return date;
+    Timesheet.prototype.getDiff = function() {
+      return this.max - this.min;
     };
 
-    Timesheet.prototype.parse = function(startdate, enddate, label, type) {
-      var dateRange = enddate - startdate;
+    Timesheet.prototype.setSectionWidth = function(incrementTotal) {
+      console.log(incrementTotal);
+      return this.sectionWidth = this.container.offsetWidth / incrementTotal;
+    };
 
-      // date range/total range
+    Timesheet.prototype.getSectionWidth = function() {
+      if(!this.sectionWidth) throw new Error('Section width has not been set');
+      return this.sectionWidth;
+    }
 
-      // var beg = this.parseDate(data[0]);
-      // var end = data.length === 4 ? this.parseDate(data[1]) : null;
-      // var lbl = data.length === 4 ? data[2] : data[1];
-      // var cat = data[3] || 'default';
+    Timesheet.prototype.newIncrement = function(incrementType, incrementSize) {
+      if(!incrementSize) incrementSize = 1;
 
-      // if (beg.getFullYear() < this.year.min) {
-      //   this.year.min = beg.getFullYear();
-      // }
+      var typeCount, 
+          range = this.getDiff();
 
-      // if (end && end.getFullYear() > this.year.max) {
-      //   this.year.max = end.getFullYear();
-      // } else if (beg.getFullYear() > this.year.max) {
-      //   this.year.max = beg.getFullYear();
-      // }
+      if(incrementType === 'years') {
+        typeCount = Math.ceil(moment.duration(range).asYears());
+      }
 
-      // return {start: beg, end: end, label: lbl, type: cat};
+      if(incrementType === 'months') {
+        typeCount = Math.ceil(moment.duration(range).asMonths());
+      }
+
+      if(incrementType === 'days') {
+        typeCount = Math.ceil(moment.duration(range).asDays());
+      }
+
+      if(incrementType === 'hours') {
+        typeCount = Math.ceil(moment.duration(range).asHours());
+      }
+
+      if(incrementType === 'minutes') {
+        typeCount = Math.ceil(moment.duration(range).asMinutes());
+      }
+
+      if(incrementType === 'seconds') {
+        typeCount = Math.ceil(moment.duration(range).asSeconds());
+      }
+
+      if(incrementType === 'miliseconds') {
+        typeCount = Math.ceil(moment.duration(range).asMiliseconds());
+      }
+
+      return typeCount / incrementSize
     };
 
     return Timesheet;
@@ -123,28 +110,31 @@ angular.module('angularTimesheetApp')
     		maxdate: '=',
         incrementType: '=',
         incrementSize: '=',
-        incrementTotal: '=',
         incrementInView: '='
     	},
       restrict: 'E',
       compile: function compile(tElement, tAttrs) {
       	return {
       		post: function postLink(scope, element, attrs, ctrl, transcludeFn) {
-            var timesheet = ctrl.getTimesheet();
+            var timesheet       = ctrl.getTimesheet();
+            var incrementTotal  = timesheet.newIncrement(scope.incrementType, scope.incrementSize);
+
+            // Class may change width so add it before calculating.
+            element.addClass('timesheet color-scheme-default');
+
+            var sectionWidth = timesheet.setSectionWidth(incrementTotal);
+
             var html = [];
 
-            var sectionWidth = element[0].offsetWidth / scope.incrementTotal;
-
-            console.log(sectionWidth);
-
-            for (var c = 0; c < scope.incrementTotal; c++) {
-              html.push('<section style="width:' + sectionWidth + 'px">' + c + '</section>');
+            for(var i = 1; i < incrementTotal; i++) {
+              console.log('in');
+              html.push('<section style="width:' + sectionWidth + 'px; box-sizing: border-box"></section>');
             }
 
-            console.log(scope);
-
-            element.addClass('timesheet color-scheme-default');
+            // Add the scale
             element.html('<div class="scale">' + html.join('') + '</div>');
+
+            // Add the data container
             element.append('<ul class="data"></ul>');
 
             // Pass parent scope in so ng-repeat and others will work as expected.
@@ -155,14 +145,7 @@ angular.module('angularTimesheetApp')
       	};
       },
       controller: function($scope, $element) {
-        var timesheet = new Timesheet(
-              $element[0], 
-              $scope.mindate, 
-              $scope.maxdate, 
-              $scope.incrementType,
-              $scope.incrementSize,
-              $scope.incrementsInView 
-            );
+        var timesheet = new Timesheet($element[0], $scope.mindate, $scope.maxdate);
 
         return {
           getTimesheet: function() {
@@ -186,23 +169,14 @@ angular.module('angularTimesheetApp')
       compile: function compile(tElement, tAttrs, transclude) {
         return {
           post: function(scope, element, attrs, ctrl, transcludeFn) {
-            var timesheet   = ctrl.getTimesheet(),
-                widthMonth  = timesheet.container.querySelector('.scale section').offsetWidth,
-                mindate     = timesheet.year.min;
+            var timesheet   = ctrl.getTimesheet();
 
             transcludeFn(scope, function(clone) {
               var reEvaluate = function() {
-                var cur     = timesheet.parse(scope.startdate, scope.enddate, angular.element(clone).text(), ''),
-                    bubble  = new TimesheetBubble(widthMonth, mindate, cur.start, cur.end);
+                var bubble        = new TimesheetBubble(timesheet),
+                    parsedBubble  = bubble.init(scope.startdate, scope.enddate, clone.text());
 
-                return {
-                  startOffset: bubble.getStartOffset(),
-                  width: bubble.getWidth(),
-                  dateLabel: bubble.getDateLabel(),
-                  label: cur.label,
-                  duration: (cur.end ? Math.round((cur.end-cur.start)/1000/60/60/24/39) : ''),
-                  type: (cur.type || 'default')
-                };   
+                return parsedBubble;
               };
 
               var checkEval = function(drawData) {
