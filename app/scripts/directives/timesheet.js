@@ -10,9 +10,9 @@ angular.module('angularTimesheetApp')
     };
 
     Bubble.prototype.init = function(startDate, endDate, label) {
-      if(startDate  !== this.startDate)  this.startDate  = startDate;
-      if(endDate    !== this.endDate)    this.endDate    = endDate;
-      if(label      !== this.label)      this.label      = label;
+      this.startDate  = startDate;
+      this.endDate     = endDate;
+      this.label      = label;
 
       return {
         width: this.getWidth(),
@@ -52,7 +52,6 @@ angular.module('angularTimesheetApp')
     };
 
     Timesheet.prototype.setSectionWidth = function(incrementTotal) {
-      console.log(incrementTotal);
       return this.sectionWidth = this.container.offsetWidth / incrementTotal;
     };
 
@@ -67,33 +66,7 @@ angular.module('angularTimesheetApp')
       var typeCount, 
           range = this.getDiff();
 
-      if(incrementType === 'years') {
-        typeCount = Math.ceil(moment.duration(range).asYears());
-      }
-
-      if(incrementType === 'months') {
-        typeCount = Math.ceil(moment.duration(range).asMonths());
-      }
-
-      if(incrementType === 'days') {
-        typeCount = Math.ceil(moment.duration(range).asDays());
-      }
-
-      if(incrementType === 'hours') {
-        typeCount = Math.ceil(moment.duration(range).asHours());
-      }
-
-      if(incrementType === 'minutes') {
-        typeCount = Math.ceil(moment.duration(range).asMinutes());
-      }
-
-      if(incrementType === 'seconds') {
-        typeCount = Math.ceil(moment.duration(range).asSeconds());
-      }
-
-      if(incrementType === 'miliseconds') {
-        typeCount = Math.ceil(moment.duration(range).asMiliseconds());
-      }
+      typeCount = Math.ceil(moment.duration(range)[incrementType]());
 
       return typeCount / incrementSize
     };
@@ -110,7 +83,7 @@ angular.module('angularTimesheetApp')
     		maxdate: '=',
         incrementType: '=',
         incrementSize: '=',
-        incrementInView: '='
+        incrementsInView: '='
     	},
       restrict: 'E',
       compile: function compile(tElement, tAttrs) {
@@ -121,18 +94,30 @@ angular.module('angularTimesheetApp')
 
             // Class may change width so add it before calculating.
             element.addClass('timesheet color-scheme-default');
+            element.css({
+              overflow: 'scroll'
+            });
 
-            var sectionWidth = timesheet.setSectionWidth(incrementTotal);
+            var sectionWidth;
+            var scaleWidth;
+
+            if(scope.incrementsInView && scope.incrementsInView !== '' && incrementTotal !== scope.incrementsInView) {
+              sectionWidth = timesheet.setSectionWidth(scope.incrementsInView);
+              scaleWidth = incrementTotal*sectionWidth + 'px'
+            } else {
+              sectionWidth = timesheet.setSectionWidth(incrementTotal);
+              scaleWidth = '';
+            }
 
             var html = [];
 
-            for(var i = 1; i < incrementTotal; i++) {
+            for(var i = 0; i < incrementTotal; i++) {
               console.log('in');
               html.push('<section style="width:' + sectionWidth + 'px; box-sizing: border-box"></section>');
             }
 
             // Add the scale
-            element.html('<div class="scale">' + html.join('') + '</div>');
+            element.html('<div class="scale" style="width:' + scaleWidth + '">' + html.join('') + '</div>');
 
             // Add the data container
             element.append('<ul class="data"></ul>');
@@ -170,13 +155,11 @@ angular.module('angularTimesheetApp')
         return {
           post: function(scope, element, attrs, ctrl, transcludeFn) {
             var timesheet   = ctrl.getTimesheet();
+            var bubble      = new TimesheetBubble(timesheet)
 
             transcludeFn(scope, function(clone) {
               var reEvaluate = function() {
-                var bubble        = new TimesheetBubble(timesheet),
-                    parsedBubble  = bubble.init(scope.startdate, scope.enddate, clone.text());
-
-                return parsedBubble;
+                return bubble.init(scope.startdate, scope.enddate, clone.text());
               };
 
               var checkEval = function(drawData) {

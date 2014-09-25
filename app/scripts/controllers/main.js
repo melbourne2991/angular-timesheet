@@ -10,11 +10,11 @@
 angular.module('angularTimesheetApp')
   .controller('MainCtrl', function ($scope) {
   	$scope.timesheetData = {
-  		mindate: new Date('2002'),
-  		maxdate: new Date('2019'),
-  		incrementType: 'months',
-  		incrementSize: 12,
-  		incrementsInView: 12,
+  		mindate: new Date('2000'),
+  		maxdate: new Date('2028'),
+  		incrementType: 'years',
+  		incrementSize: 1,
+  		incrementsInView: 6,
   		datas: [
   			{ startdate: new Date('02-19-2002'), enddate: new Date('02-19-2006') },
   			{ startdate: new Date('02-19-2004') , enddate: new Date('02-19-2005') },
@@ -25,5 +25,5 @@ angular.module('angularTimesheetApp')
 
   	$scope.addNew = function() {
   		$scope.timesheetData.datas.push({ startdate: '07/2002' , enddate: '2004' });
-  	}
+  	};
   });

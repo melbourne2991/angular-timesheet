@@ -9,13 +9,7 @@
  -->
 
 
-<timesheet 
-	mindate="timesheetData.mindate" 
-	maxdate="timesheetData.maxdate"
-	increment-total="timesheetData.incrementTotal"
-	increment-type="timesheetData.incrementType"
-	increment-size="timesheetData.incrementSize"
-	>
+<timesheet mindate="timesheetData.mindate" maxdate="timesheetData.maxdate" increment-total="timesheetData.incrementTotal" increment-type="timesheetData.incrementType" increment-size="timesheetData.incrementSize" increments-in-view="timesheetData.incrementsInView">
   <timesheet-bubble ng-repeat="data in timesheetData.datas" startdate="data.startdate" enddate="data.enddate">dfdf</timesheet-bubble>
 </timesheet>
 
