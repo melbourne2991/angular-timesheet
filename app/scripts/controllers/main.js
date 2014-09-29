@@ -8,21 +8,21 @@
  * Controller of the angularTimesheetApp
  */
 angular.module('angularTimesheetApp')
-  .controller('MainCtrl', function ($scope) {
+  .controller('MainCtrl', function ($scope, $interval) {
   	var mindate = new Date();
   	var maxdate = new Date();
   	
-  	maxdate.setSeconds(mindate.getSeconds() + 300);
+  	maxdate.setSeconds(mindate.getSeconds() + 5*60);
 
-  	console.log(mindate);
-  	console.log(maxdate);
+  	// console.log(mindate);
+  	// console.log(maxdate);
 
   	$scope.timesheetData = {
   		mindate: mindate,
   		maxdate: maxdate,
-  		incrementType: 'minutes',
+  		incrementType: 'seconds',
   		incrementSize: 1,
-  		incrementsInView: 10,
+  		incrementsInView: 4,
   		datas: [
   			{ startdate: mindate, enddate: new Date() }
   			// { startdate: new Date('02-19-2004') , enddate: new Date('02-19-2005') },
@@ -37,8 +37,15 @@ angular.module('angularTimesheetApp')
 
   	$scope.change = function() {
   		var t = $scope.timesheetData.datas[0].enddate;
-  		t.setSeconds(t.getSeconds() + 10);
 
-  		console.log($scope.timesheetData.datas[0].enddate);
+  		console.log('in change');
+
+  		$interval(function() {
+	  		t.setMilliseconds(t.getMilliseconds() + 100);
+  		}, 100);
+
+  		// $interval(function() {
+	  	// 	t.setSeconds(t.getSeconds() + 1);
+  		// }, 1000);
   	};
   });

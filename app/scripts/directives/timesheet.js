@@ -28,11 +28,11 @@ angular.module('angularTimesheetApp')
     };
 
     Bubble.prototype.getWidth = function() {
-      return this.timesheet.container.offsetWidth*(this.getDiff() / this.timesheet.getDiff());
+      return this.timesheet.widths.scaleWidth*(this.getDiff() / this.timesheet.getDiff());      
     };
 
     Bubble.prototype.getOffset = function() {
-      return this.timesheet.container.offsetWidth*((this.startDate - this.timesheet.min) / this.timesheet.getDiff());
+      return this.timesheet.widths.scaleWidth*((this.startDate - this.timesheet.min) / this.timesheet.getDiff());
     };
 
     return Bubble;
@@ -41,9 +41,10 @@ angular.module('angularTimesheetApp')
     var Timesheet = function(container, min, max) {
         this.min = min;
         this.max = max
-
-        if (typeof document !== 'undefined') {
-          this.container = container;
+        this.container = container;
+        this.widths = {
+          sectionWidth: null,
+          scaleWidth: null
         }
     };
 
@@ -58,15 +59,30 @@ angular.module('angularTimesheetApp')
     Timesheet.prototype.getSectionWidth = function() {
       if(!this.sectionWidth) throw new Error('Section width has not been set');
       return this.sectionWidth;
-    }
+    };
+
+    Timesheet.prototype.calculateWidths = function(incrementTotal, incrementsInView) {
+        var sectionWidth;
+        var scaleWidth;
+
+        if(incrementsInView && incrementsInView !== '' && incrementTotal !== incrementsInView) {
+          this.widths.sectionWidth = this.setSectionWidth(incrementsInView);
+          this.widths.scaleWidth = incrementTotal*this.widths.sectionWidth;
+        } else {
+          this.widths.sectionWidth = this.setSectionWidth(incrementTotal);
+          this.widths.scaleWidth = '';
+        }
+
+        return this.widths;
+    };
 
     Timesheet.prototype.newIncrement = function(incrementType, incrementSize) {
       if(!incrementSize) incrementSize = 1;
 
-      var typeCount, 
-          range = this.getDiff();
+      incrementType = 'as' + incrementType.charAt(0).toUpperCase() + incrementType.slice(1);
 
-      typeCount = Math.ceil(moment.duration(range)[incrementType]());
+      var range = this.getDiff(),
+          typeCount = Math.ceil(moment.duration(range)[incrementType]());
 
       return typeCount / incrementSize
     };
@@ -98,28 +114,20 @@ angular.module('angularTimesheetApp')
               overflow: 'scroll'
             });
 
-            var sectionWidth;
-            var scaleWidth;
-
-            if(scope.incrementsInView && scope.incrementsInView !== '' && incrementTotal !== scope.incrementsInView) {
-              sectionWidth = timesheet.setSectionWidth(scope.incrementsInView);
-              scaleWidth = incrementTotal*sectionWidth + 'px'
-            } else {
-              sectionWidth = timesheet.setSectionWidth(incrementTotal);
-              scaleWidth = '';
-            }
+            // Calculate scale and sections widths.
+            var widths = timesheet.calculateWidths(incrementTotal, scope.incrementsInView);
 
             var html = [];
 
             for(var i = 0; i < incrementTotal; i++) {
-              html.push('<section style="width:' + sectionWidth + 'px; box-sizing: border-box"></section>');
+              html.push('<section style="width:' + widths.sectionWidth + 'px; box-sizing: border-box"></section>');
             }
 
             // Add the scale
-            element.html('<div class="scale" style="width:' + scaleWidth + '">' + html.join('') + '</div>');
+            element.html('<div class="scale" style="width:' + widths.scaleWidth + 'px">' + html.join('') + '</div>');
 
             // Add the data container
-            element.append('<ul class="data"></ul>');
+            element.append('<ul class="data" style="width:' + widths.scaleWidth +'px"></ul>');
 
             // Pass parent scope in so ng-repeat and others will work as expected.
             transcludeFn(scope.$parent, function(cloned) {
@@ -205,6 +213,10 @@ angular.module('angularTimesheetApp')
                     '<span class="label">' + drawDataCurrent.label + '</span>'
                   ].join('');
 
+              element.css({
+                width: timesheet.widths.scaleWidth + 'px'
+              });
+
               element.html(line);   
 
               scope.$watch('startdate', function(n, o) {
@@ -215,13 +227,14 @@ angular.module('angularTimesheetApp')
               });
 
               scope.$watch('enddate', function(n, o) {
-                  console.log('end date changed');
+                console.log('new endate');
+                console.log(n);
 
                 if(n && n !== o) {
                   var reVal = reEvaluate();
                   checkEval(reVal);
                 }
-              });
+              }, true);
             });
           }
         };
