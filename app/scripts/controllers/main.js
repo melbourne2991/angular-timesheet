@@ -14,20 +14,17 @@ angular.module('angularTimesheetApp')
   	
   	maxdate.setSeconds(mindate.getSeconds() + 300);
 
-  	console.log(mindate);
-  	console.log(maxdate);
-
   	$scope.timesheetData = {
-  		mindate: mindate,
-  		maxdate: maxdate,
-  		incrementType: 'minutes',
+  		mindate: new Date('2002'),
+  		maxdate: new Date('2012'),
+  		incrementType: 'years',
   		incrementSize: 1,
   		incrementsInView: 10,
   		datas: [
-  			{ startdate: mindate, enddate: new Date() }
-  			// { startdate: new Date('02-19-2004') , enddate: new Date('02-19-2005') },
-  			// { startdate: new Date('02-19-2005') , enddate: new Date('02-19-2009') },
-  			// { startdate: new Date('02-19-2008') , enddate: new Date('02-19-2010') }
+  			// { startdate: mindate, enddate: new Date() }
+  			{ startdate: new Date('02-19-2004') , enddate: new Date('02-19-2005') },
+  			{ startdate: new Date('02-19-2005') , enddate: new Date('02-19-2009') },
+  			{ startdate: new Date('02-19-2008') , enddate: new Date('02-19-2010') }
   		]
   	};
 

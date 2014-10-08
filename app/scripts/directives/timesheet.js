@@ -216,6 +216,7 @@ angular.module('angularTimesheetApp')
 
               scope.$watch('enddate', function(n, o) {
                   console.log('end date changed');
+                  console.log(n);
 
                 if(n && n !== o) {
                   var reVal = reEvaluate();
