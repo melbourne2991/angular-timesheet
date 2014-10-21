@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('angularTimesheetApp')
+angular.module('angularTimesheetApp', [])
   .factory('TimesheetBubble', function() {
     var Bubble = function(timesheet, startDate, endDate, label) {
       this.timesheet  = timesheet || '';
@@ -14,13 +14,17 @@ angular.module('angularTimesheetApp')
       this.endDate     = endDate;
       this.label      = label;
 
-      return {
+      var bubbleData = {
         width: this.getWidth(),
         startOffset: this.getOffset(),
         label: this.label,
         dateLabel: '',
         type: 'default'
       };
+
+      console.log(bubbleData);
+
+      return bubbleData;
     };
 
     Bubble.prototype.getDiff = function() {
@@ -37,7 +41,7 @@ angular.module('angularTimesheetApp')
 
     return Bubble;
   })
-  .factory('Timesheet', function() {
+  .factory('Timesheet', [function() {
     var Timesheet = function(container, min, max) {
         this.min = min;
         this.max = max
@@ -52,8 +56,8 @@ angular.module('angularTimesheetApp')
       return this.max - this.min;
     };
 
-    Timesheet.prototype.setSectionWidth = function(incrementTotal) {
-      return this.sectionWidth = this.container.offsetWidth / incrementTotal;
+    Timesheet.prototype.setSectionWidth = function(incrementsInView) {
+      return this.sectionWidth = this.container.offsetWidth / incrementsInView;
     };
 
     Timesheet.prototype.getSectionWidth = function() {
@@ -70,7 +74,7 @@ angular.module('angularTimesheetApp')
           this.widths.scaleWidth = incrementTotal*this.widths.sectionWidth;
         } else {
           this.widths.sectionWidth = this.setSectionWidth(incrementTotal);
-          this.widths.scaleWidth = '';
+          this.widths.scaleWidth = this.widths.sectionWidth * incrementTotal;
         }
 
         return this.widths;
@@ -82,29 +86,30 @@ angular.module('angularTimesheetApp')
       incrementType = 'as' + incrementType.charAt(0).toUpperCase() + incrementType.slice(1);
 
       var range = this.getDiff(),
-          typeCount = Math.ceil(moment.duration(range)[incrementType]());
+          exactVal = moment.duration(range)[incrementType](),
+          roundedVal = Math.ceil(exactVal);
 
-      return typeCount / incrementSize
+      return roundedVal / incrementSize
     };
 
     return Timesheet;
-  })
-  .directive('timesheet', function (Timesheet) {
+  }])
+  .directive('timesheet', ['Timesheet', function(Timesheet) {
     return {
-    	template: '<div></div>',
+      template: '<div></div>',
       replace: true,
-    	transclude: true,
-    	scope: {
-    		mindate: '=',
-    		maxdate: '=',
+      transclude: true,
+      scope: {
+        mindate: '=',
+        maxdate: '=',
         incrementType: '=',
         incrementSize: '=',
         incrementsInView: '='
-    	},
+      },
       restrict: 'E',
       compile: function compile(tElement, tAttrs) {
-      	return {
-      		post: function postLink(scope, element, attrs, ctrl, transcludeFn) {
+        return {
+          post: function postLink(scope, element, attrs, ctrl, transcludeFn) {
             var timesheet       = ctrl.getTimesheet();
             var incrementTotal  = timesheet.newIncrement(scope.incrementType, scope.incrementSize);
 
@@ -133,8 +138,8 @@ angular.module('angularTimesheetApp')
             transcludeFn(scope.$parent, function(cloned) {
               angular.element(element[0].querySelector('ul.data')).append(cloned);
             });
-		      }
-      	};
+          }
+        };
       },
       controller: function($scope, $element) {
         var timesheet = new Timesheet($element[0], $scope.mindate, $scope.maxdate);
@@ -146,14 +151,14 @@ angular.module('angularTimesheetApp')
         };
       },
     };
-  })
-  .directive('timesheetBubble', function (TimesheetBubble) {
+  }])
+  .directive('timesheetBubble', ['TimesheetBubble', function(TimesheetBubble) {
     return {
-    	scope: {
-    		startdate: '=',
-    		enddate: '='
-    	},
-    	require: '^timesheet',
+      scope: {
+        startdate: '=',
+        enddate: '='
+      },
+      require: '^timesheet',
       restrict: 'E',  
       replace: true,
       transclude: true,
@@ -237,4 +242,4 @@ angular.module('angularTimesheetApp')
         };
       }
     };
-  });
+  }]);
